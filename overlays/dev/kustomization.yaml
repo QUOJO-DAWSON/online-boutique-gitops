@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: online-boutique
 resources:
   - ../../base
+  - ../../app-config
 
 images:
   - name: adservice-image
@@ -27,7 +28,7 @@ images:
     newName: dawsonkesson/paymentservice
     newTag: v16319814565
   - name: productcatalogservice-image
-    newName: iamfet/productcatalogservice
+    newName: dawsonkesson/productcatalogservice
     newTag: v16319814565
   - name: recommendationservice-image
     newName: dawsonkesson/recommendationservice
