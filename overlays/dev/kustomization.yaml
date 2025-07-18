@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: online-boutique
+resources:
+  - ../../base
+  - ../../components
+
+images:
+  - name: adservice-image
+    newName: dawsonkesson/adservice
+    newTag: v16319814565
+  - name: cartservice-image
+    newName: dawsonkesson/cartservice
+    newTag: v16319814565
+  - name: checkoutservice-image
+    newName: dawsonkesson/checkoutservice
+    newTag: v16319814565
+  - name: currencyservice-image
+    newName: dawsonkesson/currencyservice
+    newTag: v16319814565
+  - name: emailservice-image
+    newName: dawsonkesson/emailservice
+    newTag: v16319814565
+  - name: frontend-image
+    newName: dawsonkesson/frontend
+    newTag: v16319814565
+  - name: paymentservice-image
+    newName: dawsonkesson/paymentservice
+    newTag: v16319814565
+  - name: productcatalogservice-image
+    newName: iamfet/productcatalogservice
+    newTag: v16319814565
+  - name: recommendationservice-image
+    newName: dawsonkesson/recommendationservice
+    newTag: v16319814565
+  - name: redis-image
+    newName: redis
+    newTag: alpine
+  - name: shippingservice-image
+    newName: dawsonkesson/shippingservice
+    newTag: v16319814565
