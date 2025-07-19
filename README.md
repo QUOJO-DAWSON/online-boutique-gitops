@@ -6,7 +6,27 @@ This repository contains the GitOps configuration for deploying the Online Bouti
 
 Online Boutique is a cloud-native microservices demo application. The application is a web-based e-commerce app where users can browse items, add them to the cart, and purchase them.
 
-This repository follows GitOps principles, where the desired state of the Kubernetes infrastructure is stored in Git and automatically synchronized with the cluster.
+This repository follows GitOps principles, where the desired state of the Kubernetes infrastructure is stored in Git and automatically synchronized with the cluster using declarative configurations.
+
+## Tools and Technologies
+
+- **Kubernetes**: Container orchestration platform
+- **Kustomize**: Kubernetes configuration management
+- **ArgoCD**: GitOps continuous delivery tool
+- **Istio**: Service mesh for microservices
+- **External Secrets Operator**: Secure secret management
+- **AWS Secrets Manager**: Cloud-based secrets storage
+- **GitHub Actions**: CI/CD automation
+- **Docker**: Container runtime
+
+## Features
+
+- **GitOps-based Deployment**: Infrastructure as code with Git as the single source of truth
+- **Kustomize Integration**: Layered configuration management for different environments
+- **Service Mesh**: Istio integration for traffic management, security, and observability
+- **Secure Secret Management**: External Secrets Operator integration with AWS Secrets Manager
+- **Automated CI/CD**: GitHub Actions workflows for automated image updates
+- **mTLS Security**: Service-to-service encryption with Istio Peer Authentication
 
 ## Repository Structure
 
@@ -49,28 +69,39 @@ This repository follows GitOps principles, where the desired state of the Kubern
 
 ## CI/CD Automation
 
-This repository includes GitHub Actions workflows that automate the deployment process:
+This repository includes GitHub Actions workflows that automate the deployment process and maintain the GitOps workflow:
 
 - **Update Product Catalog Service Tag**: Automatically updates the image tag for the product catalog service when triggered by a repository dispatch event. The workflow is defined in `.github/workflows/update-productcatalogue-tag.yaml`.
+
+### Required GitHub Secrets
+
+The following secrets need to be configured in the GitHub repository settings:
+
+- `PAT_TOKEN`: Personal Access Token with repository write permissions
+- `USER_EMAIL`: Email address for Git commits
+- `USER_NAME`: Username for Git commits
 
 ## Usage
 
 ### Prerequisites
 
-- Kubernetes cluster
-- kubectl installed and configured
-- Kustomize installed
+- Kubernetes cluster with Istio installed
+- kubectl installed and configured (includes Kustomize)
+- ArgoCD installed in the cluster
+- External Secrets Operator installed in the cluster
 
-### Deploying to Development Environment
+### Deployment Order
 
-```bash
-kubectl apply -k overlays/dev
-```
-
-### Deploying Cluster Resources
+1. First, deploy the cluster-wide resources:
 
 ```bash
 kubectl apply -k cluster-resources
+```
+
+2. Then, deploy the application to the development environment:
+
+```bash
+kubectl apply -k overlays/dev
 ```
 
 ## Microservices
@@ -96,8 +127,8 @@ The application consists of the following microservices:
   - **Stripe API Key**: External secret for payment processing
   - **TLS Certificate**: External secret for Istio Gateway TLS termination
 - **Istio**: Service mesh for traffic management and security
-  - **Istio Gateway**: Configured in `cluster-resources/istio/gateway.yaml` to handle ingress traffic
-  - **Virtual Service**: Routes external traffic to the frontend service
+  - **Istio Gateway**: Configured in `cluster-resources/istio/gateway.yaml` to handle ingress traffic with TLS termination
+  - **Virtual Service**: Routes external traffic to the frontend service in the `online-boutique` namespace
   - **Peer Authentication**: Enforces mutual TLS (mTLS) between services for secure communication
 
 ## Contributing
