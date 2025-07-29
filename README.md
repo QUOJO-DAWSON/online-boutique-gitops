@@ -14,6 +14,7 @@ This repository follows GitOps principles, where the desired state of the Kubern
 - **Kustomize**: Kubernetes configuration management
 - **ArgoCD**: GitOps continuous delivery tool
 - **Istio**: Service mesh for microservices
+- **Prometheus & Grafana**: Monitoring and observability stack
 - **External Secrets Operator**: Secure secret management
 - **AWS Secrets Manager**: Cloud-based secrets storage
 - **GitHub Actions**: CI/CD automation
@@ -24,6 +25,7 @@ This repository follows GitOps principles, where the desired state of the Kubern
 - **GitOps-based Deployment**: Infrastructure as code with Git as the single source of truth
 - **Kustomize Integration**: Layered configuration management for different environments
 - **Service Mesh**: Istio integration for traffic management, security, and observability
+- **Monitoring & Observability**: Prometheus ServiceMonitor for Istio metrics collection
 - **Secure Secret Management**: External Secrets Operator integration with AWS Secrets Manager
 - **Automated CI/CD**: GitHub Actions workflows for automated image updates
 - **mTLS Security**: Service-to-service encryption with Istio Peer Authentication
@@ -61,6 +63,9 @@ This repository follows GitOps principles, where the desired state of the Kubern
 │   │   ├── istio-external-secret.yaml          # TLS certificate for Istio Gateway
 │   │   ├── kustomization.yaml
 │   │   └── mesh-peer-authentication.yaml       # mTLS configuration for service-to-service communication
+│   ├── prometheus-grafana/                     # Prometheus monitoring configuration
+│   │   ├── istio-servicemonitor.yaml            # ServiceMonitor for Istio metrics
+│   │   └── kustomization.yaml
 │   └── kustomization.yaml
 └── overlays/                                   # Environment-specific configurations
     └── dev/                                    # Development environment
@@ -130,6 +135,8 @@ The application consists of the following microservices:
   - **Istio Gateway**: Configured in `cluster-resources/istio/gateway.yaml` to handle ingress traffic with TLS termination
   - **Virtual Service**: Routes external traffic to the frontend service in the `online-boutique` namespace
   - **Peer Authentication**: Enforces mutual TLS (mTLS) between services for secure communication
+- **Prometheus Monitoring**: Observability and metrics collection
+  - **ServiceMonitor**: Configured in `cluster-resources/prometheus-grafana/istio-servicemonitor.yaml` to collect Istio control plane metrics
 
 ## Contributing
 
