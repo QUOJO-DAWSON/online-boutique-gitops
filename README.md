@@ -139,6 +139,12 @@ The application consists of the following microservices:
   - **ServiceMonitor**: Configured in `cluster-resources/prometheus-grafana/istio-servicemonitor.yaml` to collect Istio control plane metrics
   - **AlertManager**: Bundled with Prometheus stack for alert routing and notifications
 
+## Related Projects
+
+- **[Application Repository](https://github.com/QUOJO-DAWSON/online-boutique-application)** - Microservices source code
+- **[Infrastructure Repository](https://github.com/QUOJO-DAWSON/eks-infra-automation)** - EKS infrastructure automation
+
+
 ## Contributing
 
 1. Create a new branch for your changes
