@@ -31,5 +31,5 @@ jobs:
           git config --local user.email "${{ secrets.USER_EMAIL }}"
           git config --local user.name "${{ secrets.USER_NAME }}"
           git add overlays/dev/kustomization.yaml
-          git commit -m "feat: update productcatalogservice tag to v${{ github.event.client_payload.new_tag }}"
+          git commit -m "feat: update productcatalogservice tag to ${{ github.event.client_payload.new_tag }}"
           git push
