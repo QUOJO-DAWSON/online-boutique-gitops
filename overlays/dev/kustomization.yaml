@@ -28,7 +28,7 @@ images:
     newTag: v16319814565
   - name: productcatalogservice-image
     newName: dawsonkesson/productcatalogservice
-    newTag: v16421703252
+    newTag: v17277430794
   - name: recommendationservice-image
     newName: dawsonkesson/recommendationservice
     newTag: v16319814565
