@@ -4,6 +4,15 @@ namespace: online-boutique
 resources:
   - ../../base
   - ../../app-config
+  - reliability.yaml
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      namespace: online-boutique
 images:
   - name: adservice-image
     newName: dawsonkesson/adservice
