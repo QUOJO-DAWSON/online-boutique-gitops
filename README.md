@@ -1,4 +1,3 @@
-@'
 # online-boutique-gitops
 
 > GitOps repository for the Online Boutique microservices application. Managed by ArgoCD, deployed to the EKS platform provisioned in [eks-infra-automation](https://github.com/QUOJO-DAWSON/eks-infra-automation).
@@ -198,4 +197,3 @@ EOF
 Portfolio: [gdawsonkesson.com](https://gdawsonkesson.com)  
 GitHub: [QUOJO-DAWSON](https://github.com/QUOJO-DAWSON)  
 Platform repo: [eks-infra-automation](https://github.com/QUOJO-DAWSON/eks-infra-automation)
-'@ | Set-Content -Path "online-boutique-gitops-README.md" -Encoding UTF8
