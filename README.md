@@ -1,156 +1,201 @@
-# Online Boutique GitOps
+@'
+# online-boutique-gitops
 
-This repository contains the GitOps configuration for deploying the Online Boutique microservices application to Kubernetes using Kustomize.
+> GitOps repository for the Online Boutique microservices application. Managed by ArgoCD, deployed to the EKS platform provisioned in [eks-infra-automation](https://github.com/QUOJO-DAWSON/eks-infra-automation).
 
-## Overview
+---
 
-Online Boutique is a cloud-native microservices demo application. The application is a web-based e-commerce app where users can browse items, add them to the cart, and purchase them.
+## What This Is
 
-This repository follows GitOps principles, where the desired state of the Kubernetes infrastructure is stored in Git and automatically synchronized with the cluster using declarative configurations.
+This repo is the application-side of a two-repo GitOps architecture. It contains the Kubernetes manifests and Kustomize overlays for the Online Boutique — an 11-service e-commerce microservices application — deployed to a production-grade EKS cluster.
 
-## Tools and Technologies
+This repo owns **what gets deployed**. The platform repo owns **where it runs**.
 
-- **Kubernetes**: Container orchestration platform
-- **Kustomize**: Kubernetes configuration management
-- **ArgoCD**: GitOps continuous delivery tool
-- **Istio**: Service mesh for microservices
-- **Prometheus, Grafana & AlertManager**: Monitoring, observability, and alerting stack
-- **External Secrets Operator**: Secure secret management
-- **AWS Secrets Manager**: Cloud-based secrets storage
-- **GitHub Actions**: CI/CD automation
-- **Docker**: Container runtime
+ArgoCD watches this repository and automatically syncs any changes to the cluster. No manual `kubectl apply` commands. No pipeline that touches the cluster directly. The Git commit is the deployment.
 
-## Features
+---
 
-- **GitOps-based Deployment**: Infrastructure as code with Git as the single source of truth
-- **Kustomize Integration**: Layered configuration management for different environments
-- **Service Mesh**: Istio integration for traffic management, security, and observability
-- **Monitoring & Alerting**: Prometheus ServiceMonitor for Istio metrics collection with AlertManager for notifications
-- **Secure Secret Management**: External Secrets Operator integration with AWS Secrets Manager
-- **Automated CI/CD**: GitHub Actions workflows for automated image updates
-- **mTLS Security**: Service-to-service encryption with Istio Peer Authentication
+## Platform
+
+This application runs on the EKS platform defined in:
+
+**[eks-infra-automation](https://github.com/QUOJO-DAWSON/eks-infra-automation)** — Terraform-managed EKS cluster with Istio, Kyverno, Prometheus/Grafana, External Secrets Operator, AWS Load Balancer Controller, and Cluster Autoscaler.
+
+If you are looking for how the cluster is provisioned, how ArgoCD is installed, or how the security policies are defined — that is the repo to look at.
+
+---
+
+## Architecture
+```
+developer pushes to this repo
+          │
+          ▼
+    GitHub (source of truth)
+          │
+          │ ArgoCD polls every 3 minutes
+          ▼
+    ArgoCD (running in-cluster)
+          │
+          │ applies manifests
+          ▼
+    online-boutique namespace (EKS)
+          │
+          ├── 11 microservice Deployments
+          ├── Services
+          ├── HorizontalPodAutoscalers
+          ├── PodDisruptionBudgets
+          ├── NetworkPolicies
+          ├── VirtualService (Istio)
+          └── ExternalSecret (→ AWS Secrets Manager)
+```
+
+---
 
 ## Repository Structure
-
 ```
-.
-├── .github/                                    # GitHub configuration
-│   └── workflows/                              # GitHub Actions workflows
-│       └── update-productcatalogue-tag.yaml    # Workflow to update product catalog service image tag
-├── app-config/                                 # Application-specific configurations
-│   ├── frontend-virtual-service.yaml           # Istio VirtualService for routing to frontend
-│   ├── kustomization.yaml
-│   └── stripe-external-secret.yaml             # External Secret for Stripe API key
-├── base/                                       # Base Kubernetes manifests for all microservices
+online-boutique-gitops/
+├── base/
 │   ├── adservice.yaml
 │   ├── cartservice.yaml
 │   ├── checkoutservice.yaml
 │   ├── currencyservice.yaml
 │   ├── emailservice.yaml
 │   ├── frontend.yaml
-│   ├── kustomization.yaml
 │   ├── paymentservice.yaml
 │   ├── productcatalogservice.yaml
 │   ├── recommendationservice.yaml
-│   ├── redis-cart.yaml
-│   └── shippingservice.yaml
-├── cluster-resources/                          # Cluster-wide resources
-│   ├── external-secret/                        # External Secrets configuration
-│   │   ├── aws-secret-store.yaml               # AWS Secrets Manager configuration
-│   │   └── kustomization.yaml
-│   ├── istio/                                  # Istio service mesh configuration
-│   │   ├── gateway.yaml                        # Istio Gateway for ingress traffic
-│   │   ├── istio-external-secret.yaml          # TLS certificate for Istio Gateway
-│   │   ├── kustomization.yaml
-│   │   └── mesh-peer-authentication.yaml       # mTLS configuration for service-to-service communication
-│   ├── prometheus-grafana/                     # Prometheus monitoring configuration
-│   │   ├── istio-servicemonitor.yaml            # ServiceMonitor for Istio metrics
-│   │   └── kustomization.yaml
+│   ├── redis.yaml
+│   ├── shippingservice.yaml
 │   └── kustomization.yaml
-└── overlays/                                   # Environment-specific configurations
-    └── dev/                                    # Development environment
-        └── kustomization.yaml
+├── app-config/
+│   ├── externalsecret.yaml     # Pulls Stripe API key from AWS Secrets Manager
+│   ├── virtual-service.yaml    # Istio routing for frontend
+│   ├── hpa.yaml                # HPA for all services
+│   ├── pdb.yaml                # PodDisruptionBudgets
+│   ├── network-policies.yaml   # Default-deny + explicit allow rules
+│   └── kustomization.yaml
+└── overlays/
+    ├── dev/
+    │   ├── kustomization.yaml  # Dev image tags + patches
+    │   └── reliability.yaml    # Dev-specific reliability config
+    ├── staging/
+    │   └── kustomization.yaml  # Staging overrides
+    └── prod/
+        └── kustomization.yaml  # Production overrides
 ```
 
-## CI/CD Automation
+---
 
-This repository includes GitHub Actions workflows that automate the deployment process and maintain the GitOps workflow:
+## Services
 
-- **Update Product Catalog Service Tag**: Automatically updates the image tag for the product catalog service when triggered by a repository dispatch event. The workflow is defined in `.github/workflows/update-productcatalogue-tag.yaml`.
+| Service | Language | Role |
+|---------|----------|------|
+| frontend | Go | User-facing UI, exposed via Istio VirtualService |
+| cartservice | C# | Shopping cart, backed by Redis |
+| productcatalogservice | Go | Product listings |
+| currencyservice | Node.js | Currency conversion |
+| paymentservice | Node.js | Payment processing (uses Stripe secret) |
+| orderingservice | Go | Order orchestration |
+| checkoutservice | Go | Checkout flow |
+| emailservice | Python | Order confirmation emails |
+| recommendationservice | Python | Product recommendations |
+| adservice | Java | Ad serving |
+| redis-cart | Redis | Cart data store |
 
-### Required GitHub Secrets
+---
 
-The following secrets need to be configured in the GitHub repository settings:
+## Reliability
 
-- `PAT_TOKEN`: Personal Access Token with repository write permissions
-- `USER_EMAIL`: Email address for Git commits
-- `USER_NAME`: Username for Git commits
+Every service is configured with:
 
-## Usage
+**HorizontalPodAutoscaler** — scales on CPU utilisation. High-traffic services (frontend, cartservice, checkoutservice) have higher max replicas and lower CPU thresholds.
 
-### Prerequisites
+**PodDisruptionBudget** — ensures at least 1 replica of each service remains available during node drains or cluster upgrades. Prevents cascading failures during maintenance windows.
 
-- Kubernetes cluster with Istio installed
-- kubectl installed and configured (includes Kustomize)
-- ArgoCD installed in the cluster
-- External Secrets Operator installed in the cluster
+---
 
-### Deployment Order
+## Security
 
-1. First, deploy the cluster-wide resources:
+**NetworkPolicies** — the `online-boutique` namespace runs under a default-deny-all policy. Traffic is only permitted via explicit allow rules:
+- Intra-namespace pod-to-pod communication
+- Istio control plane (istiod) communication
+- Prometheus scraping (port 9090, 15090)
+- DNS egress (port 53 UDP/TCP to kube-system)
 
+**Kyverno policies** (enforced by the platform) apply to all workloads in this namespace:
+- No privileged containers
+- No host namespaces (hostPID, hostIPC, hostNetwork)
+- No `latest` image tags
+- Resource limits required (audit)
+- Non-root user required (audit — upstream images run as root)
+
+**External Secrets** — the Stripe API key is never stored in this repo or in CI. The `ExternalSecret` resource instructs the External Secrets Operator to pull from AWS Secrets Manager at runtime, creating a Kubernetes secret the paymentservice consumes.
+
+---
+
+## Environments
+
+| Environment | Path | Status |
+|-------------|------|--------|
+| dev | `overlays/dev` | ✅ Active — synced by ArgoCD |
+| staging | `overlays/staging` | Overlay complete |
+| prod | `overlays/prod` | Overlay complete |
+
+The dev overlay is the active environment. Staging and prod overlays are structured and ready — promoting to those environments requires applying the corresponding ArgoCD Application manifest.
+
+---
+
+## Images
+
+All service images are built from the upstream Google microservices-demo source and pushed to Docker Hub under `dawsonkesson/`. Image tags follow the GitHub Actions run ID convention (e.g. `v16319814565`) — no `latest` tags, ever.
+
+---
+
+## How to Deploy
+
+ArgoCD handles deployment automatically on every push. To apply manually for a new environment:
 ```bash
-kubectl apply -k cluster-resources
+kubectl apply -f - <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: online-boutique-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/QUOJO-DAWSON/online-boutique-gitops
+    targetRevision: HEAD
+    path: overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: online-boutique
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+EOF
 ```
 
-2. Then, deploy the application to the development environment:
+---
 
-```bash
-kubectl apply -k overlays/dev
-```
+## Screenshots
 
-## Microservices
+| What | Screenshot |
+|------|-----------|
+| ArgoCD — Online Boutique Healthy | ![ArgoCD Healthy](https://github.com/QUOJO-DAWSON/eks-infra-automation/raw/main/docs/screenshots/05-argocd-online-boutique-healthy.png) |
+| ArgoCD — Full Resource Tree | ![ArgoCD Tree](https://github.com/QUOJO-DAWSON/eks-infra-automation/raw/main/docs/screenshots/06-argocd-resource-tree.png) |
 
-The application consists of the following microservices:
+> Screenshots are stored in the platform repo at [eks-infra-automation/docs/screenshots](https://github.com/QUOJO-DAWSON/eks-infra-automation/tree/main/docs/screenshots)
 
-- **Frontend**: Web UI
-- **Product Catalog Service**: Provides the list of products
-- **Currency Service**: Converts prices to different currencies
-- **Cart Service**: Stores items in the user's shopping cart
-- **Recommendation Service**: Recommends products to users
-- **Shipping Service**: Calculates shipping costs
-- **Checkout Service**: Manages the checkout process
-- **Payment Service**: Processes payments
-- **Email Service**: Sends confirmation emails
-- **Ad Service**: Provides advertisements
-- **Redis**: Used as a cache for the cart service
+---
 
-## External Dependencies
+## Author
 
-- **External Secrets Operator**: Used to securely manage secrets
-  - **AWS Secret Store**: Configured to fetch secrets from AWS Secrets Manager
-  - **Stripe API Key**: External secret for payment processing
-  - **TLS Certificate**: External secret for Istio Gateway TLS termination
-- **Istio**: Service mesh for traffic management and security
-  - **Istio Gateway**: Configured in `cluster-resources/istio/gateway.yaml` to handle ingress traffic with TLS termination
-  - **Virtual Service**: Routes external traffic to the frontend service in the `online-boutique` namespace
-  - **Peer Authentication**: Enforces mutual TLS (mTLS) between services for secure communication
-- **Prometheus Monitoring**: Observability, metrics collection, and alerting
-  - **ServiceMonitor**: Configured in `cluster-resources/prometheus-grafana/istio-servicemonitor.yaml` to collect Istio control plane metrics
-  - **AlertManager**: Bundled with Prometheus stack for alert routing and notifications
-
-## Related Projects
-
-- **[Application Repository](https://github.com/QUOJO-DAWSON/online-boutique-application)** - Microservices source code
-- **[Infrastructure Repository](https://github.com/QUOJO-DAWSON/eks-infra-automation)** - EKS infrastructure automation
-
-
-## Contributing
-
-1. Create a new branch for your changes
-2. Make your changes and test them
-3. Submit a pull request
-
-## License
-
-See the [LICENSE](LICENSE) file for details.
+**George Dawson-Kesson** — AWS Certified Solutions Architect – Associate  
+Portfolio: [gdawsonkesson.com](https://gdawsonkesson.com)  
+GitHub: [QUOJO-DAWSON](https://github.com/QUOJO-DAWSON)  
+Platform repo: [eks-infra-automation](https://github.com/QUOJO-DAWSON/eks-infra-automation)
+'@ | Set-Content -Path "online-boutique-gitops-README.md" -Encoding UTF8
